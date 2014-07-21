@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <wchar.h>
+#include <stdbool.h>
 
 HHOOK keyhook = NULL;
 
