@@ -1,4 +1,8 @@
 #define UNICODE
+/**
+ * Alternative Windows driver for the Neo2-Keyboard layout (www.neo-layout.org)
+ */
+
 #include <windows.h>
 #include <stdio.h>
 #include <wchar.h>
@@ -44,8 +48,6 @@ TCHAR mapKey(unsigned level, char in)
 	return mappingTable[in];
 }
 
-
-
 /**
  * Sends a char using emulated keyboard input
  *
@@ -77,33 +79,34 @@ void sendChar(TCHAR key, KBDLLHOOKSTRUCT keyInfo)
 		keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);
 }
 
-
-bool handleLayer4SpecialCases(KBDLLHOOKSTRUCT keyInfo) {
+bool handleLayer4SpecialCases(KBDLLHOOKSTRUCT keyInfo)
+{
 	unsigned len = 103;
 	CHAR mappingTable[len];
 	for (int i = 0; i < len; i++)
 		mappingTable[i] = 0;
 
-	mappingTable[17]=VK_BACK;	
-	mappingTable[18]=VK_UP;	
-	mappingTable[19]=VK_DELETE;	
-	mappingTable[31]=VK_LEFT;	
-	mappingTable[32]=VK_DOWN;	
-	mappingTable[33]=VK_RIGHT;	
-	mappingTable[44]=VK_ESCAPE;	
-	mappingTable[45]=VK_TAB;	
-	mappingTable[47]=VK_RETURN;	
+	mappingTable[17] = VK_BACK;
+	mappingTable[18] = VK_UP;
+	mappingTable[19] = VK_DELETE;
+	mappingTable[31] = VK_LEFT;
+	mappingTable[32] = VK_DOWN;
+	mappingTable[33] = VK_RIGHT;
+	mappingTable[44] = VK_ESCAPE;
+	mappingTable[45] = VK_TAB;
+	mappingTable[47] = VK_RETURN;
 
-	if(mappingTable[keyInfo.scanCode] != 0) {
-			keybd_event(mappingTable[keyInfo.scanCode], 0, 0, 0);
-			return true;
+	if (mappingTable[keyInfo.scanCode] != 0) {
+		keybd_event(mappingTable[keyInfo.scanCode], 0, 0, 0);
+		return true;
 	}
-	return false;	
+	return false;
 }
 
 bool isShift(KBDLLHOOKSTRUCT keyInfo)
 {
-	return keyInfo.vkCode == VK_SHIFT || keyInfo.vkCode == VK_LSHIFT || keyInfo.vkCode == VK_RSHIFT  ;
+	return keyInfo.vkCode == VK_SHIFT || keyInfo.vkCode == VK_LSHIFT
+	    || keyInfo.vkCode == VK_RSHIFT;
 }
 
 bool isMod3(KBDLLHOOKSTRUCT keyInfo)
@@ -113,7 +116,13 @@ bool isMod3(KBDLLHOOKSTRUCT keyInfo)
 
 bool isMod4(KBDLLHOOKSTRUCT keyInfo)
 {
-	return keyInfo.vkCode==VK_RMENU || keyInfo.vkCode==VK_CAPITAL;//keyInfo.scanCode == 43 || keyInfo.scanCode == 86;
+	return keyInfo.vkCode == VK_RMENU || keyInfo.vkCode == VK_CAPITAL;	//keyInfo.scanCode == 43 || keyInfo.scanCode == 86;
+}
+
+
+void logKeyEvent(char* desc, KBDLLHOOKSTRUCT keyInfo) {
+	printf("%-10s sc %u vk 0x%x 0x%x %d\n", desc, keyInfo.scanCode, keyInfo.vkCode,
+	       keyInfo.flags, keyInfo.dwExtraInfo);
 }
 
 __declspec(dllexport)
@@ -123,20 +132,19 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 	static bool mod3Pressed = false;
 	static bool mod4Pressed = false;
 
-
 	KBDLLHOOKSTRUCT keyInfo;
-	if (code == HC_ACTION && (wparam == WM_SYSKEYUP || wparam == WM_KEYUP || wparam == WM_SYSKEYDOWN || wparam == WM_KEYDOWN)) 
-	{
+	if (code == HC_ACTION
+	    && (wparam == WM_SYSKEYUP || wparam == WM_KEYUP || wparam == WM_SYSKEYDOWN
+		|| wparam == WM_KEYDOWN)) {
 		keyInfo = *((KBDLLHOOKSTRUCT *) lparam);
-		if (keyInfo.flags & LLKHF_INJECTED) // process injected events like normal, because most probably we are injecting them
+		if (keyInfo.flags & LLKHF_INJECTED)	// process injected events like normal, because most probably we are injecting them
 			return CallNextHookEx(NULL, code, wparam, lparam);
 	}
 
 	if (code == HC_ACTION && (wparam == WM_SYSKEYUP || wparam == WM_KEYUP)) {
-		printf("Keyhook up %u, sc %u vk %x %x %d\n", code, keyInfo.scanCode, keyInfo.vkCode, keyInfo.flags,
-		       keyInfo.dwExtraInfo);
+		logKeyEvent("key up", keyInfo);
 
-		if(isShift(keyInfo)) {
+		if (isShift(keyInfo)) {
 			shiftPressed = false;
 			keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, 0);
 			return -1;
@@ -150,6 +158,8 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 	}
 
 	else if (code == HC_ACTION && (wparam == WM_SYSKEYDOWN || wparam == WM_KEYDOWN)) {
+		logKeyEvent("key down", keyInfo);
+
 		unsigned level = 1;
 		if (shiftPressed)
 			level = 2;
@@ -157,9 +167,6 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 			level = 3;
 		if (mod4Pressed)
 			level = 4;
-
-		printf("Keyhook %u, sc %u vk %x %x %d\n", code, keyInfo.scanCode, keyInfo.vkCode, keyInfo.flags,
-		       keyInfo.dwExtraInfo);
 
 		if (isShift(keyInfo)) {
 			shiftPressed = true;
@@ -171,18 +178,18 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 		} else if (isMod4(keyInfo)) {
 			mod4Pressed = true;
 			return -1;
-		} else if(level==4 && handleLayer4SpecialCases(keyInfo)) {
+		} else if (level == 4 && handleLayer4SpecialCases(keyInfo)) {
 			return -1;
 		} else {
-				TCHAR key = mapKey(level, keyInfo.scanCode);
-				if (key != 0 && (keyInfo.flags & LLKHF_INJECTED) == 0) {
-					// if key must be mapped
-					printf("Mapped %d->%c (level %u)\n", keyInfo.scanCode, key, level);
-					//BYTE state[256];
-					//GetKeyboardState(state);
-					sendChar(key, keyInfo);
-					//SetKeyboardState(state);
-					return -1;
+			TCHAR key = mapKey(level, keyInfo.scanCode);
+			if (key != 0 && (keyInfo.flags & LLKHF_INJECTED) == 0) {
+				// if key must be mapped
+				printf("Mapped %d->%c (level %u)\n", keyInfo.scanCode, key, level);
+				//BYTE state[256];
+				//GetKeyboardState(state);
+				sendChar(key, keyInfo);
+				//SetKeyboardState(state);
+				return -1;
 			}
 		}
 	}
@@ -214,12 +221,10 @@ DWORD WINAPI hookThreadMain(void *user)
 
 int main(int argc, char *argv[])
 {
-	HANDLE t;
 	DWORD tid;
-
-	t = CreateThread(0, 0, hookThreadMain, argv[0], 0, &tid);
-	if (t) {
-		return WaitForSingleObject(t, INFINITE);
+	HANDLE thread = CreateThread(0, 0, hookThreadMain, argv[0], 0, &tid);
+	if (thread) {
+		return WaitForSingleObject(thread, INFINITE);
 	}
 	return 0;
 }
