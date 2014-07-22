@@ -6,6 +6,9 @@
 
 HHOOK keyhook = NULL;
 
+/**
+ * Map a key scancode to the char that should be displayed after typing
+ **/
 TCHAR mapKey(unsigned level, char in)
 {
 	unsigned len = 103;
@@ -41,6 +44,13 @@ TCHAR mapKey(unsigned level, char in)
 	return mappingTable[in];
 }
 
+
+
+/**
+ * Sends a char using emulated keyboard input
+ *
+ * This works for most cases, but not for dead keys etc
+ **/
 void sendChar(TCHAR key, KBDLLHOOKSTRUCT keyInfo)
 {
 	SHORT keyScanResult = VkKeyScanEx(key, GetKeyboardLayout(0));
@@ -67,6 +77,30 @@ void sendChar(TCHAR key, KBDLLHOOKSTRUCT keyInfo)
 		keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);
 }
 
+
+bool handleLayer4SpecialCases(KBDLLHOOKSTRUCT keyInfo) {
+	unsigned len = 103;
+	CHAR mappingTable[len];
+	for (int i = 0; i < len; i++)
+		mappingTable[i] = 0;
+
+	mappingTable[17]=VK_BACK;	
+	mappingTable[18]=VK_UP;	
+	mappingTable[19]=VK_DELETE;	
+	mappingTable[31]=VK_LEFT;	
+	mappingTable[32]=VK_DOWN;	
+	mappingTable[33]=VK_RIGHT;	
+	mappingTable[44]=VK_ESCAPE;	
+	mappingTable[45]=VK_TAB;	
+	mappingTable[47]=VK_RETURN;	
+
+	if(mappingTable[keyInfo.scanCode] != 0) {
+			keybd_event(mappingTable[keyInfo.scanCode], 0, 0, 0);
+			return true;
+	}
+	return false;	
+}
+
 bool isShift(KBDLLHOOKSTRUCT keyInfo)
 {
 	return keyInfo.vkCode == VK_SHIFT || keyInfo.vkCode == VK_LSHIFT || keyInfo.vkCode == VK_RSHIFT  ;
@@ -79,7 +113,7 @@ bool isMod3(KBDLLHOOKSTRUCT keyInfo)
 
 bool isMod4(KBDLLHOOKSTRUCT keyInfo)
 {
-	return keyInfo.scanCode == 43 || keyInfo.scanCode == 86;
+	return keyInfo.vkCode==VK_RMENU || keyInfo.vkCode==VK_CAPITAL;//keyInfo.scanCode == 43 || keyInfo.scanCode == 86;
 }
 
 __declspec(dllexport)
@@ -127,17 +161,7 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 		printf("Keyhook %u, sc %u vk %x %x %d\n", code, keyInfo.scanCode, keyInfo.vkCode, keyInfo.flags,
 		       keyInfo.dwExtraInfo);
 
-		TCHAR key = mapKey(level, keyInfo.scanCode);
-		if (key != 0 && (keyInfo.flags & LLKHF_INJECTED) == 0) {
-			// if key must be mapped
-			printf("Mapped %d->%c (level %u)\n", keyInfo.scanCode, key, level);
-			//BYTE state[256];
-			//GetKeyboardState(state);
-			sendChar(key, keyInfo);
-			//SetKeyboardState(state);
-
-			return -1;
-		} else if (isShift(keyInfo)) {
+		if (isShift(keyInfo)) {
 			shiftPressed = true;
 			keybd_event(VK_SHIFT, 0, 0, 0);
 			return -1;
@@ -147,6 +171,19 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 		} else if (isMod4(keyInfo)) {
 			mod4Pressed = true;
 			return -1;
+		} else if(level==4 && handleLayer4SpecialCases(keyInfo)) {
+			return -1;
+		} else {
+				TCHAR key = mapKey(level, keyInfo.scanCode);
+				if (key != 0 && (keyInfo.flags & LLKHF_INJECTED) == 0) {
+					// if key must be mapped
+					printf("Mapped %d->%c (level %u)\n", keyInfo.scanCode, key, level);
+					//BYTE state[256];
+					//GetKeyboardState(state);
+					sendChar(key, keyInfo);
+					//SetKeyboardState(state);
+					return -1;
+			}
 		}
 	}
 	return CallNextHookEx(NULL, code, wparam, lparam);
