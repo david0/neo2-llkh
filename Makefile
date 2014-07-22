@@ -1,4 +1,3 @@
-CC=i386-mingw32-gcc
 CFLAGS=-std=c99
 LD=$(CC)
 

@@ -21,24 +21,27 @@ TCHAR mapKey(unsigned level, char in)
 		wcscpy(mappingTable + 44, L"üöäpzbm,.j");
 		break;
 	case 3:
+		wcscpy(mappingTable + 2, L"¹²³›‹¢¥‚‘’‐");
 		wcscpy(mappingTable + 16, L"…_[]^!<>=&");
 		wcscpy(mappingTable + 30, L"\\/{}*?()-:@");
 		wcscpy(mappingTable + 44, L"#$|~`+%\"';");
 		break;
 	case 4:
-		wcscpy(mappingTable + 16, L"       789-");
-		wcscpy(mappingTable + 30, L"       456,");
-		wcscpy(mappingTable + 44, L"       123;");
+		wcscpy(mappingTable + 2, L"°§ℓ»«$€„“”—");
+		wcscpy(mappingTable + 16, L"…_[]^!<>=&");
+		wcscpy(mappingTable + 33, L"789-");
+		wcscpy(mappingTable + 37, L"456,");
+		wcscpy(mappingTable + 51, L"123;");
 		break;
 	}
 	return mappingTable[in];
 }
 
-void sendChar(TCHAR key, KBDLLHOOKSTRUCT keyinfo)
+void sendChar(TCHAR key, KBDLLHOOKSTRUCT keyInfo)
 {
-	SHORT extinfo = VkKeyScanEx(key, GetKeyboardLayout(0));
-	keyinfo.vkCode = extinfo;
-	char modifiers = extinfo >> 8;
+	SHORT keyScanResult = VkKeyScanEx(key, GetKeyboardLayout(0));
+	keyInfo.vkCode = keyScanResult;
+	char modifiers = keyScanResult >> 8;
 	bool shift = ((modifiers & 1) != 0);
 	bool alt = ((modifiers & 2) != 0);
 	bool ctrl = ((modifiers & 4) != 0);
@@ -50,7 +53,7 @@ void sendChar(TCHAR key, KBDLLHOOKSTRUCT keyinfo)
 	if (ctrl)
 		keybd_event(VK_CONTROL, 0, 0, 0);
 
-	keybd_event(keyinfo.vkCode, keyinfo.scanCode, keyinfo.flags, keyinfo.dwExtraInfo);
+	keybd_event(keyInfo.vkCode, keyInfo.scanCode, keyInfo.flags, keyInfo.dwExtraInfo);
 	if (shift)
 		keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, 0);
 	if (alt)
@@ -59,14 +62,14 @@ void sendChar(TCHAR key, KBDLLHOOKSTRUCT keyinfo)
 		keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);
 }
 
-bool isMod3(KBDLLHOOKSTRUCT keyinfo)
+bool isMod3(KBDLLHOOKSTRUCT keyInfo)
 {
-	return keyinfo.vkCode == VK_CAPITAL || keyinfo.scanCode == 541 || keyinfo.scanCode == 43;
+	return keyInfo.vkCode == VK_CAPITAL || keyInfo.scanCode == 541 || keyInfo.scanCode == 43;
 }
 
-bool isMod4(KBDLLHOOKSTRUCT keyinfo)
+bool isMod4(KBDLLHOOKSTRUCT keyInfo)
 {
-	return keyinfo.scanCode == 43;
+	return keyInfo.scanCode == 43;
 }
 
 __declspec(dllexport)
@@ -76,20 +79,20 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 	static bool mod4Pressed = false;
 
 	if (code == HC_ACTION && (wparam == WM_SYSKEYUP || wparam == WM_KEYUP)) {
-		KBDLLHOOKSTRUCT keyinfo = *((KBDLLHOOKSTRUCT *) lparam);
-		printf("Keyhook up %u, %u %x %d\n", code, keyinfo.scanCode, keyinfo.flags,
-		       keyinfo.dwExtraInfo);
-		if (isMod3(keyinfo)) {
+		KBDLLHOOKSTRUCT keyInfo = *((KBDLLHOOKSTRUCT *) lparam);
+		printf("Keyhook up %u, %u %x %d\n", code, keyInfo.scanCode, keyInfo.flags,
+		       keyInfo.dwExtraInfo);
+		if (isMod3(keyInfo)) {
 			mod3Pressed = false;
 			return -1;
-		} else if (isMod4(keyinfo)) {
+		} else if (isMod4(keyInfo)) {
 			mod4Pressed = false;
 			return -1;
 		}
 	}
 
 	else if (code == HC_ACTION && (wparam == WM_SYSKEYDOWN || wparam == WM_KEYDOWN)) {
-		KBDLLHOOKSTRUCT keyinfo = *((KBDLLHOOKSTRUCT *) lparam);
+		KBDLLHOOKSTRUCT keyInfo = *((KBDLLHOOKSTRUCT *) lparam);
 
 		unsigned level = 1;
 		if (mod3Pressed)
@@ -97,19 +100,19 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 		if (mod4Pressed)
 			level = 4;
 
-		printf("Keyhook: %u, %u %x %d\n", code, keyinfo.scanCode, keyinfo.flags,
-		       keyinfo.dwExtraInfo);
+		printf("Keyhook: %u, %u %x %d\n", code, keyInfo.scanCode, keyInfo.flags,
+		       keyInfo.dwExtraInfo);
 
-		TCHAR key = mapKey(level, keyinfo.scanCode);
-		if (key != 0 && (keyinfo.flags & LLKHF_INJECTED) == 0) {
+		TCHAR key = mapKey(level, keyInfo.scanCode);
+		if (key != 0 && (keyInfo.flags & LLKHF_INJECTED) == 0) {
 			// if key must be mapped
-			printf("Mapped %d->%c (level %u)\n", keyinfo.scanCode, key, level);
-			sendChar(key, keyinfo);
+			printf("Mapped %d->%c (level %u)\n", keyInfo.scanCode, key, level);
+			sendChar(key, keyInfo);
 			return -1;
-		} else if (isMod3(keyinfo)) {
+		} else if (isMod3(keyInfo)) {
 			mod3Pressed = true;
 			return -1;
-		} else if (isMod4(keyinfo)) {
+		} else if (isMod4(keyInfo)) {
 			mod4Pressed = true;
 			return -1;
 		}
@@ -117,7 +120,7 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 	return CallNextHookEx(NULL, code, wparam, lparam);
 }
 
-DWORD WINAPI driver(void *user)
+DWORD WINAPI hookThreadMain(void *user)
 {
 	HINSTANCE base = GetModuleHandle(NULL);
 	MSG msg;
@@ -145,7 +148,7 @@ int main(int argc, char *argv[])
 	HANDLE t;
 	DWORD tid;
 
-	t = CreateThread(0, 0, driver, argv[0], 0, &tid);
+	t = CreateThread(0, 0, hookThreadMain, argv[0], 0, &tid);
 	if (t) {
 		return WaitForSingleObject(t, INFINITE);
 	}
