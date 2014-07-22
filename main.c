@@ -7,8 +7,6 @@
 HHOOK keyhook = NULL;
 
 TCHAR mapKey(unsigned level, char in) {
-
-
   unsigned len=103;
   TCHAR mappingTable[len];
   for(int i=0; i<len; i++)
@@ -27,12 +25,28 @@ TCHAR mapKey(unsigned level, char in) {
     wcscpy(mappingTable+30, L"\\/{}*?()-:@");
     wcscpy(mappingTable+44, L"#$|~`+%\"';");
     break;
+  case 4:
+    wcscpy(mappingTable+16, L"       789-");
+    wcscpy(mappingTable+30, L"       456,");
+    wcscpy(mappingTable+44, L"       123;");
+    break;
   }
   return mappingTable[in];
 }
 
 
-void sendKey(KBDLLHOOKSTRUCT keyinfo, bool shift, bool alt, bool ctrl) {
+void sendChar(TCHAR key) 
+{
+      SHORT extinfo =VkKeyScanEx(key,GetKeyboardLayout(0)); 
+      KBDLLHOOKSTRUCT keyinfo;
+      keyinfo.vkCode=extinfo;
+      char modifiers = extinfo >> 8;
+      bool shift = ((modifiers & 1) != 0);
+      bool alt = ((modifiers & 2) != 0);
+      bool ctrl = ((modifiers & 4) != 0);
+
+
+
       if(shift) keybd_event(VK_SHIFT,0,0,0);
       if(alt) keybd_event(VK_MENU,0,0,0); // ALT
       if(ctrl) keybd_event(VK_CONTROL,0,0,0);
@@ -50,10 +64,13 @@ void sendKey(KBDLLHOOKSTRUCT keyinfo, bool shift, bool alt, bool ctrl) {
 __declspec(dllexport) LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 {
     static bool mod3Pressed=false;
+    static bool mod4Pressed=false;
 	if(code == HC_ACTION && (wparam == WM_SYSKEYUP || wparam == WM_KEYUP)) {
 		KBDLLHOOKSTRUCT keyinfo = *((KBDLLHOOKSTRUCT *)lparam);
     if(keyinfo.scanCode == VK_CAPITAL || keyinfo.scanCode == 541)
         mod3Pressed=false;
+    if(keyinfo.scanCode == 43)
+        mod4Pressed=false;
   }
 	if (code == HC_ACTION && (wparam == WM_SYSKEYDOWN || wparam == WM_KEYDOWN) 
 ) {
@@ -61,26 +78,22 @@ __declspec(dllexport) LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM 
 		DWORD m;
 
     unsigned level=1; 
-
     if(mod3Pressed)
       level=3;
+    if(mod4Pressed)
+      level=4;
 
     printf("Keyhook: %u, %u %x %s\n", code, keyinfo.scanCode,keyinfo.flags, keyinfo.dwExtraInfo); 
     TCHAR key = mapKey(level, keyinfo.scanCode);
     if(key!=0 && (keyinfo.flags & LLKHF_INJECTED)==0) {
-      SHORT extinfo =VkKeyScanEx(key,GetKeyboardLayout(0)); 
-      keyinfo.vkCode=extinfo;
-      char modifiers = extinfo >> 8;
-      bool shift = ((modifiers & 1) != 0);
-      bool alt = ((modifiers & 2) != 0);
-      bool ctrl = ((modifiers & 4) != 0);
-  		printf("mod %x\n",modifiers);
-
-  		printf("%d->%c (level %u)\n", keyinfo.scanCode, key, level);
-      sendKey(keyinfo, shift, alt, ctrl);
+        		printf("%d->%c (level %u)\n", keyinfo.scanCode, key, level);
+      sendChar(key);
 	    return -1;
     } else if( keyinfo.vkCode == VK_CAPITAL||keyinfo.scanCode==541)  {
       mod3Pressed=true; 
+      return -1;  
+    } else if( keyinfo.scanCode==43)  {
+      mod4Pressed=true; 
       return -1;  
      } else
 	    return CallNextHookEx(NULL, code, wparam, lparam);
