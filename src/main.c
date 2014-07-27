@@ -7,8 +7,11 @@
 #include <stdio.h>
 #include <wchar.h>
 #include <stdbool.h>
+#include "trayicon.h"
+#include "resources.h"
 
 HHOOK keyhook = NULL;
+#define APPNAME "neo2-llkh"
 
 /**
  * Map a key scancode to the char that should be displayed after typing
@@ -219,9 +222,22 @@ DWORD WINAPI hookThreadMain(void *user)
 	return 0;
 }
 
+void exitApplication()
+{
+  trayicon_remove();
+  PostQuitMessage(0);
+}
+
 int main(int argc, char *argv[])
 {
 	DWORD tid;
+
+	HINSTANCE hInstance = GetModuleHandle(NULL);
+  trayicon_init(LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPICON)), APPNAME);
+  //trayicon_add_item(NULL, &toggleWindowVisible);
+  trayicon_add_item("Exit", &exitApplication);
+
+
 	HANDLE thread = CreateThread(0, 0, hookThreadMain, argv[0], 0, &tid);
 	if (thread) {
 		return WaitForSingleObject(thread, INFINITE);
