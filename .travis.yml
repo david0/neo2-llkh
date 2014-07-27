@@ -1,0 +1,4 @@
+language: C
+
+script:
+  - cd src && make TARGET=i586-mingw32msvc-
