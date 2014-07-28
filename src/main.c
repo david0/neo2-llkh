@@ -228,19 +228,29 @@ void exitApplication()
   PostQuitMessage(0);
 }
 
+
+void toggleDriver() 
+{
+
+}
+
+
 int main(int argc, char *argv[])
 {
 	DWORD tid;
 
 	HINSTANCE hInstance = GetModuleHandle(NULL);
   trayicon_init(LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPICON)), APPNAME);
-  //trayicon_add_item(NULL, &toggleWindowVisible);
+  trayicon_add_item(NULL, &toggleDriver);
   trayicon_add_item("Exit", &exitApplication);
 
 
 	HANDLE thread = CreateThread(0, 0, hookThreadMain, argv[0], 0, &tid);
-	if (thread) {
-		return WaitForSingleObject(thread, INFINITE);
+
+	MSG msg;
+	while (GetMessage(&msg, NULL, 0, 0) > 0) {
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
 	return 0;
 }
