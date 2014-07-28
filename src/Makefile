@@ -13,7 +13,7 @@ endif
 all: neo2llkh.exe
 
 neo2llkh.exe: main.o trayicon.o resources.o
-				$(LD) -o $@ $^
+				$(LD) $(LDFLAGS) -o $@ $^
 
 %.o: %.rc
 				$(WINDRES) -i $^ -o $@
