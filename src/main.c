@@ -18,7 +18,6 @@ HHOOK keyhook = NULL;
  */
 bool bypassMode = false;
 
-
 /**
  * Map a key scancode to the char that should be displayed after typing
  **/
@@ -128,8 +127,8 @@ bool isMod4(KBDLLHOOKSTRUCT keyInfo)
 	return keyInfo.vkCode == VK_RMENU || keyInfo.vkCode == VK_CAPITAL;	//keyInfo.scanCode == 43 || keyInfo.scanCode == 86;
 }
 
-
-void logKeyEvent(char* desc, KBDLLHOOKSTRUCT keyInfo) {
+void logKeyEvent(char *desc, KBDLLHOOKSTRUCT keyInfo)
+{
 	printf("%-10s sc %u vk 0x%x 0x%x %d\n", desc, keyInfo.scanCode, keyInfo.vkCode,
 	       keyInfo.flags, keyInfo.dwExtraInfo);
 }
@@ -150,8 +149,8 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 			return CallNextHookEx(NULL, code, wparam, lparam);
 	}
 
-	if(bypassMode)
-			return CallNextHookEx(NULL, code, wparam, lparam);
+	if (bypassMode)
+		return CallNextHookEx(NULL, code, wparam, lparam);
 
 	if (code == HC_ACTION && (wparam == WM_SYSKEYUP || wparam == WM_KEYUP)) {
 		logKeyEvent("key up", keyInfo);
@@ -233,10 +232,9 @@ DWORD WINAPI hookThreadMain(void *user)
 
 void exitApplication()
 {
-  trayicon_remove();
-  PostQuitMessage(0);
+	trayicon_remove();
+	PostQuitMessage(0);
 }
-
 
 void toggleBypassMode()
 {
@@ -244,7 +242,7 @@ void toggleBypassMode()
 
 	HINSTANCE hInstance = GetModuleHandle(NULL);
 	HICON icon;
-	if(bypassMode)
+	if (bypassMode)
 		icon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPICON_DISABLED));
 	else
 		icon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPICON));
@@ -253,16 +251,14 @@ void toggleBypassMode()
 	printf("%i bypass mode \n", bypassMode);
 }
 
-
 int main(int argc, char *argv[])
 {
 	DWORD tid;
 
 	HINSTANCE hInstance = GetModuleHandle(NULL);
-  trayicon_init(LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPICON)), APPNAME);
-  trayicon_add_item(NULL, &toggleBypassMode);
-  trayicon_add_item("Exit", &exitApplication);
-
+	trayicon_init(LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPICON)), APPNAME);
+	trayicon_add_item(NULL, &toggleBypassMode);
+	trayicon_add_item("Exit", &exitApplication);
 
 	HANDLE thread = CreateThread(0, 0, hookThreadMain, argv[0], 0, &tid);
 

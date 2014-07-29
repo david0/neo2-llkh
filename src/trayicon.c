@@ -83,7 +83,8 @@ bool trayicon_init(HICON icon, char tooltip[])
 	functionptr_array[0] = NULL;
 }
 
-bool trayicon_change_icon(HICON newicon) {
+bool trayicon_change_icon(HICON newicon)
+{
 
 	trayicon_data.hIcon = newicon;
 	Shell_NotifyIcon(NIM_MODIFY, &trayicon_data);
