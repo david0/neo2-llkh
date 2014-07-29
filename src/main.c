@@ -16,7 +16,7 @@ HHOOK keyhook = NULL;
 /**
  * Map a key scancode to the char that should be displayed after typing
  **/
-TCHAR mapKey(unsigned level, char in)
+TCHAR mapScanCodeToChar(unsigned level, char in)
 {
 	unsigned len = 103;
 	TCHAR mappingTable[len];
@@ -184,7 +184,7 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 		} else if (level == 4 && handleLayer4SpecialCases(keyInfo)) {
 			return -1;
 		} else {
-			TCHAR key = mapKey(level, keyInfo.scanCode);
+			TCHAR key = mapScanCodeToChar(level, keyInfo.scanCode);
 			if (key != 0 && (keyInfo.flags & LLKHF_INJECTED) == 0) {
 				// if key must be mapped
 				printf("Mapped %d->%c (level %u)\n", keyInfo.scanCode, key, level);
