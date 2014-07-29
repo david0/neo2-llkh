@@ -14,6 +14,12 @@ HHOOK keyhook = NULL;
 #define APPNAME "neo2-llkh"
 
 /**
+ * True if no mapping should be done
+ */
+bool bypassMode = false;
+
+
+/**
  * Map a key scancode to the char that should be displayed after typing
  **/
 TCHAR mapScanCodeToChar(unsigned level, char in)
@@ -144,6 +150,9 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 			return CallNextHookEx(NULL, code, wparam, lparam);
 	}
 
+	if(bypassMode)
+			return CallNextHookEx(NULL, code, wparam, lparam);
+
 	if (code == HC_ACTION && (wparam == WM_SYSKEYUP || wparam == WM_KEYUP)) {
 		logKeyEvent("key up", keyInfo);
 
@@ -229,9 +238,19 @@ void exitApplication()
 }
 
 
-void toggleDriver() 
+void toggleBypassMode()
 {
+	bypassMode = !bypassMode;
 
+	HINSTANCE hInstance = GetModuleHandle(NULL);
+	HICON icon;
+	if(bypassMode)
+		icon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPICON_DISABLED));
+	else
+		icon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPICON));
+
+	trayicon_change_icon(icon);
+	printf("%i bypass mode \n", bypassMode);
 }
 
 
@@ -241,7 +260,7 @@ int main(int argc, char *argv[])
 
 	HINSTANCE hInstance = GetModuleHandle(NULL);
   trayicon_init(LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPICON)), APPNAME);
-  trayicon_add_item(NULL, &toggleDriver);
+  trayicon_add_item(NULL, &toggleBypassMode);
   trayicon_add_item("Exit", &exitApplication);
 
 

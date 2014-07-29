@@ -69,6 +69,7 @@ bool trayicon_init(HICON icon, char tooltip[])
 	trayicon_data.cbSize = sizeof(trayicon_data);
 	trayicon_data.hIcon = icon;
 	trayicon_data.hWnd = hidden_window;
+	trayicon_data.uID = 1;
 	trayicon_data.uCallbackMessage = WM_ICON_CLICK;
 	trayicon_data.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
 
@@ -80,6 +81,12 @@ bool trayicon_init(HICON icon, char tooltip[])
 
 	functionptr_array = malloc(sizeof(callback_functionPtr));
 	functionptr_array[0] = NULL;
+}
+
+bool trayicon_change_icon(HICON newicon) {
+
+	trayicon_data.hIcon = newicon;
+	Shell_NotifyIcon(NIM_MODIFY, &trayicon_data);
 }
 
 void trayicon_remove()

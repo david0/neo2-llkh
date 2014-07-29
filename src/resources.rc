@@ -27,3 +27,4 @@ END
 
 
 IDI_APPICON ICON "appicon.ico"
+IDI_APPICON_DISABLED ICON "appicon-disabled.ico"

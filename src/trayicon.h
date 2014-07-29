@@ -22,6 +22,7 @@
 typedef void (*callback_functionPtr) ();
 
 bool trayicon_init(HICON icon, char tooltip[]);
+bool trayicon_change_icon(HICON newicon);
 void trayicon_remove();
 
 void trayicon_add_item(char *text, callback_functionPtr functionPtr);
