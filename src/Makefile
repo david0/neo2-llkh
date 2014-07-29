@@ -3,17 +3,20 @@ CC=$(TARGET)gcc
 LD=$(TARGET)gcc
 WINDRES=$(TARGET)windres
 CFLAGS=-std=c99 -O3 -DWINVER=0x500 -DWIN32_WINNT=0x500
-LDFLAGS+=-Wl,-subsystem,windows 
-
+LDFLAGS+=-mwindows
+OBJECTS=main.o trayicon.o resources.o
 ifdef DEBUG
 				CFLAGS+= -g
 				LDFLAGS:=$(filter-out -mwindows, $(LDFLAGS))
 endif
 
-all: neo2llkh.exe
+all: neo-llkh.exe
 
-neo2llkh.exe: main.o trayicon.o resources.o
+neo-llkh.exe: $(OBJECTS)
 				$(LD) $(LDFLAGS) -o $@ $^
 
 %.o: %.rc
 				$(WINDRES) -i $^ -o $@
+
+clean: 
+				@rm -f $(OBJECTS) neo-llkh.exe
