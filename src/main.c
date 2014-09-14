@@ -69,22 +69,31 @@ void sendChar(TCHAR key, KBDLLHOOKSTRUCT keyInfo)
 	bool shift = ((modifiers & 1) != 0);
 	bool alt = ((modifiers & 2) != 0);
 	bool ctrl = ((modifiers & 4) != 0);
+	bool altgr = alt && ctrl;
+	if (altgr) {
+		ctrl = false;
+		alt = false;
+	}
 
-	if (shift)
-		keybd_event(VK_SHIFT, 0, 0, 0);
-	if (alt)
-		keybd_event(VK_MENU, 0, 0, 0);	// ALT
+	if (altgr)
+		keybd_event(VK_RMENU, 0, 0, 0);
 	if (ctrl)
 		keybd_event(VK_CONTROL, 0, 0, 0);
+	if (alt)
+		keybd_event(VK_MENU, 0, 0, 0);	// ALT
+	if (shift)
+		keybd_event(VK_SHIFT, 0, 0, 0);
 
 	keybd_event(keyInfo.vkCode, keyInfo.scanCode, keyInfo.flags, keyInfo.dwExtraInfo);
 
-	if (shift)
-		keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, 0);
-	if (alt)
-		keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0);	// ALT
+	if (altgr)
+		keybd_event(VK_RMENU, 0, KEYEVENTF_KEYUP, 0);
 	if (ctrl)
 		keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);
+	if (alt)
+		keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0);	// ALT
+	if (shift)
+		keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, 0);
 }
 
 bool handleLayer4SpecialCases(KBDLLHOOKSTRUCT keyInfo)
@@ -121,7 +130,7 @@ bool isShift(KBDLLHOOKSTRUCT keyInfo)
 
 bool isMod3(KBDLLHOOKSTRUCT keyInfo)
 {
-	return keyInfo.vkCode == VK_CAPITAL || keyInfo.scanCode == 541 || keyInfo.scanCode == 43;
+	return keyInfo.vkCode == VK_CAPITAL || keyInfo.scanCode == 43;
 }
 
 bool isMod4(KBDLLHOOKSTRUCT keyInfo)
@@ -147,8 +156,11 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 	    && (wparam == WM_SYSKEYUP || wparam == WM_KEYUP || wparam == WM_SYSKEYDOWN
 		|| wparam == WM_KEYDOWN)) {
 		keyInfo = *((KBDLLHOOKSTRUCT *) lparam);
-		if (keyInfo.flags & LLKHF_INJECTED)	// process injected events like normal, because most probably we are injecting them
+
+		if (keyInfo.flags & LLKHF_INJECTED) {	// process injected events like normal, because most probably we are injecting them
+			logKeyEvent("injected", keyInfo);
 			return CallNextHookEx(NULL, code, wparam, lparam);
+		}
 	}
 
 	if (bypassMode)
@@ -189,6 +201,10 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 			mod3Pressed = true;
 			return -1;
 		} else if (isMod4(keyInfo)) {
+			/* ALTGR triggers two keys: LCONTROL and RMENU
+			   we don't want to have any of those two here effective but return -1 seems 
+			   to change nothing, so we simply send keyup here.  */
+			keybd_event(VK_RMENU, 0, KEYEVENTF_KEYUP, 0);	
 			mod4Pressed = true;
 			return -1;
 		} else if (level == 4 && handleLayer4SpecialCases(keyInfo)) {
