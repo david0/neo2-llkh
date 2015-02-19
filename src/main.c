@@ -30,7 +30,8 @@ TCHAR mapScanCodeToChar(unsigned level, char in)
 
 	switch (level) {
 	case 1:
-		wcscpy(mappingTable + 16, L"xvlcwkhgfqß");
+		wcscpy(mappingTable + 2,   L"1234567890-`");
+		wcscpy(mappingTable + 16, L"xvlcwkhgfqß´");
 		wcscpy(mappingTable + 30, L"uiaeosnrtdy");
 		wcscpy(mappingTable + 44, L"üöäpzbm,.j");
 		break;
@@ -95,6 +96,24 @@ void sendChar(TCHAR key, KBDLLHOOKSTRUCT keyInfo)
 	if (shift)
 		keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, 0);
 }
+
+bool handleLayer1SpecialCases(KBDLLHOOKSTRUCT keyInfo)
+{
+	switch(keyInfo.scanCode) {
+		case 13:
+			sendChar(L'`', keyInfo);
+			keybd_event(VK_SPACE, 0, 0, 0); 
+			return true;
+		case 27:
+			sendChar(L'´', keyInfo);
+			keybd_event(VK_SPACE, 0, 0, 0); 
+			return true;
+		default:
+			return false;
+	}	
+
+}
+
 
 bool handleLayer4SpecialCases(KBDLLHOOKSTRUCT keyInfo)
 {
@@ -208,6 +227,8 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 			   to change nothing, so we simply send keyup here.  */
 			keybd_event(VK_RMENU, 0, KEYEVENTF_KEYUP, 0);	
 			mod4Pressed = true;
+			return -1;
+		} else if (level == 1 && handleLayer1SpecialCases(keyInfo)) {
 			return -1;
 		} else if (level == 4 && handleLayer4SpecialCases(keyInfo)) {
 			return -1;
