@@ -135,7 +135,9 @@ bool isMod3(KBDLLHOOKSTRUCT keyInfo)
 
 bool isMod4(KBDLLHOOKSTRUCT keyInfo)
 {
-	return keyInfo.vkCode == VK_RMENU || keyInfo.vkCode == VK_CAPITAL;	//keyInfo.scanCode == 43 || keyInfo.scanCode == 86;
+	return keyInfo.vkCode == VK_RMENU 
+         || keyInfo.vkCode == VK_OEM_102 // |<> -Key
+				;
 }
 
 void logKeyEvent(char *desc, KBDLLHOOKSTRUCT keyInfo)
