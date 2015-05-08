@@ -133,6 +133,7 @@ bool handleLayer4SpecialCases(KBDLLHOOKSTRUCT keyInfo)
 	mappingTable[44] = VK_ESCAPE;
 	mappingTable[45] = VK_TAB;
 	mappingTable[47] = VK_RETURN;
+	mappingTable[57] = '0';
 
 	if (mappingTable[keyInfo.scanCode] != 0) {
 		keybd_event(mappingTable[keyInfo.scanCode], 0, 0, 0);
