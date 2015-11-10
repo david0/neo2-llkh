@@ -17,6 +17,7 @@ HHOOK keyhook = NULL;
  * True if no mapping should be done
  */
 bool bypassMode = false;
+extern void toggleBypassMode();
 
 /**
  * Map a key scancode to the char that should be displayed after typing
@@ -183,6 +184,12 @@ LRESULT CALLBACK keyevent(int code, WPARAM wparam, LPARAM lparam)
 			logKeyEvent("injected", keyInfo);
 			return CallNextHookEx(NULL, code, wparam, lparam);
 		}
+	}
+	
+	if (code == HC_ACTION && wparam == WM_KEYDOWN &&
+		shiftPressed && keyInfo.scanCode == 69) {
+		toggleBypassMode();
+		return -1;
 	}
 
 	if (bypassMode)
